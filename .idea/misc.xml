@@ -3,9 +3,11 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="..\:/Users/NAITO/AndroidStudioProjects/Taskapp/app/src/main/res/layout/activity_input.xml" value="0.1" />
         <entry key="..\:/Users/NAITO/AndroidStudioProjects/Taskapp/app/src/main/res/layout/activity_main.xml" value="0.1796875" />
+        <entry key="..\:/Users/NAITO/AndroidStudioProjects/Taskapp/app/src/main/res/layout/content_input.xml" value="0.1" />
       </map>
     </option>
   </component>
-  <component name="ProjectRootManager" version="2" languageLevel="JDK_11" default="true" project-jdk-name="11" project-jdk-type="JavaSDK" />
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_11" project-jdk-name="11" project-jdk-type="JavaSDK" />
 </project>

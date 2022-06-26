@@ -18,7 +18,7 @@ import java.util.*
 import android.content.Intent
 import androidx.appcompat.app.AlertDialog
 import android.util.Log
-
+const val EXTRA_TASK = "jp.techacademy.yuki.naito.taskapp.TASK"
 
 class MainActivity : AppCompatActivity() {
 
@@ -45,8 +45,10 @@ class MainActivity : AppCompatActivity() {
         setupActionBarWithNavController(navController, appBarConfiguration)*/
 
         binding.fab.setOnClickListener { view ->
-            Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                .setAction("Action", null).show()
+     /*       Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
+                .setAction("Action", null).show()*/
+            val intent = Intent(this, InputActivity::class.java)
+            startActivity(intent)
         }
         // Realmの設定
         mRealm = Realm.getDefaultInstance()
@@ -58,11 +60,38 @@ class MainActivity : AppCompatActivity() {
         // ListViewをタップしたときの処理
         listView1.setOnItemClickListener { parent, view, position, id ->
             // 入力・編集する画面に遷移させる
+            val task = parent.adapter.getItem(position) as Task
+            val intent = Intent(this, InputActivity::class.java)
+            intent.putExtra(EXTRA_TASK, task.id)
+            startActivity(intent)
         }
 
         // ListViewを長押ししたときの処理
         listView1.setOnItemLongClickListener { parent, view, position, id ->
             // タスクを削除する
+            val task = parent.adapter.getItem(position) as Task
+
+            // ダイアログを表示する
+            val builder = AlertDialog.Builder(this)
+
+            builder.setTitle("削除")
+            builder.setMessage(task.title + "を削除しますか")
+
+            builder.setPositiveButton("OK"){_, _ ->
+                val results = mRealm.where(Task::class.java).equalTo("id", task.id).findAll()
+
+                mRealm.beginTransaction()
+                results.deleteAllFromRealm()
+                mRealm.commitTransaction()
+
+                reloadListView()
+            }
+
+            builder.setNegativeButton("CANCEL", null)
+
+            val dialog = builder.create()
+            dialog.show()
+
             true
         }
 
