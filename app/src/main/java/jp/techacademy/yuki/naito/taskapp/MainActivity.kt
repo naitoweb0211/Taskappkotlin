@@ -16,7 +16,12 @@ import io.realm.RealmChangeListener
 import io.realm.Sort
 import java.util.*
 import android.content.Intent
+import android.content.IntentFilter
+import android.net.ConnectivityManager
 import androidx.appcompat.app.AlertDialog
+import android.app.AlarmManager
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
 import android.util.Log
 const val EXTRA_TASK = "jp.techacademy.yuki.naito.taskapp.TASK"
 
@@ -67,23 +72,31 @@ class MainActivity : AppCompatActivity() {
         }
 
         // ListViewを長押ししたときの処理
-        listView1.setOnItemLongClickListener { parent, view, position, id ->
+        listView1.setOnItemLongClickListener { parent, _, position, _ ->
             // タスクを削除する
             val task = parent.adapter.getItem(position) as Task
 
             // ダイアログを表示する
             val builder = AlertDialog.Builder(this)
-
+            var realm = Realm.getDefaultInstance()
             builder.setTitle("削除")
             builder.setMessage(task.title + "を削除しますか")
 
             builder.setPositiveButton("OK"){_, _ ->
-                val results = mRealm.where(Task::class.java).equalTo("id", task.id).findAll()
+                val results = realm.where(Task::class.java).equalTo("id", task.id).findAll()
 
-                mRealm.beginTransaction()
+                realm.beginTransaction()
                 results.deleteAllFromRealm()
-                mRealm.commitTransaction()
-
+                realm.commitTransaction()
+                val resultIntent = Intent(applicationContext, TaskAlarmReceiver::class.java)
+                val resultPendingIntent = PendingIntent.getBroadcast(
+                    this,
+                    task.id,
+                    resultIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT
+                )
+                val alarmManager = getSystemService(ALARM_SERVICE) as AlarmManager
+                alarmManager.cancel(resultPendingIntent)
                 reloadListView()
             }
 

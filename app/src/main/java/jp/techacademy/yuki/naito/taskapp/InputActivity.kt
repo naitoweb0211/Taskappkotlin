@@ -9,6 +9,15 @@ import android.view.View
 import io.realm.Realm
 import kotlinx.android.synthetic.main.content_input.*
 import java.util.*
+import android.app.AlarmManager
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
+import android.content.Intent
+import android.content.IntentFilter
+import android.net.ConnectivityManager
+import android.os.Build
+import android.util.Log
+import androidx.annotation.RequiresApi
 
 class InputActivity : AppCompatActivity() {
 
@@ -18,6 +27,7 @@ class InputActivity : AppCompatActivity() {
     private var mHour = 0
     private var mMinute = 0
     private var mTask: Task? = null
+    private  val br: BroadcastReceiver = TaskAlarmReceiver()
 
     private val mOnDateClickListener = View.OnClickListener {
         val datePickerDialog = DatePickerDialog(this,
@@ -42,11 +52,13 @@ class InputActivity : AppCompatActivity() {
         timePickerDialog.show()
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private val mOnDoneClickListener = View.OnClickListener {
         addTask()
         finish()
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_input)
@@ -99,6 +111,7 @@ class InputActivity : AppCompatActivity() {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun addTask() {
         val realm = Realm.getDefaultInstance()
 
@@ -132,5 +145,24 @@ class InputActivity : AppCompatActivity() {
         realm.commitTransaction()
 
         realm.close()
+
+        val resultIntent = Intent(applicationContext, TaskAlarmReceiver::class.java)
+
+        val filter = IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION).apply {
+            addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED)
+        }
+        Log.d("日付", date.toString())
+        var taskAlarmreceiver: TaskAlarmReceiver = TaskAlarmReceiver()
+        Log.d("日付",date.toInstant().toEpochMilli().toString())
+        registerReceiver(br, filter)
+
+        Intent().also { intent ->
+            intent.setAction("com.example.broadcast.MY_NOTIFICATION")
+            intent.setClass(applicationContext, TaskAlarmReceiver::class.java)
+            intent.putExtra("DATE", date.toInstant().toEpochMilli())
+            sendBroadcast(intent)
+        }
+        Log.d("MyBroadcastsendReceiver", "MyBroadcastSendReceiver")
     }
+
 }
