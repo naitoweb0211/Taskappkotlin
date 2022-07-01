@@ -18,6 +18,11 @@ import android.net.ConnectivityManager
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
+import android.content.Context
+import android.graphics.Color
+
+const val DATE = "DATE"
+const val Requestcode = 1
 
 class InputActivity : AppCompatActivity() {
 
@@ -66,6 +71,8 @@ class InputActivity : AppCompatActivity() {
         // ActionBarを設定する
         val toolbar = findViewById<View>(R.id.toolbar) as Toolbar
         setSupportActionBar(toolbar)
+        toolbar.setBackgroundColor(Color.BLUE)
+        toolbar.setTitleTextColor(Color.WHITE)
         if (supportActionBar != null) {
             supportActionBar!!.setDisplayHomeAsUpEnabled(true)
         }
@@ -131,10 +138,10 @@ class InputActivity : AppCompatActivity() {
                 }
             mTask!!.id = identifier
         }
-
+        val category = category_edit_text.text.toString()
         val title = title_edit_text.text.toString()
         val content = content_edit_text.text.toString()
-
+        mTask!!.category = category
         mTask!!.title = title
         mTask!!.contents = content
         val calendar = GregorianCalendar(mYear, mMonth, mDay, mHour, mMinute)
@@ -146,22 +153,35 @@ class InputActivity : AppCompatActivity() {
 
         realm.close()
 
+        // タスクの期限日時になったら、ブロードキャストされるように、明示的Intentを発行
+        // まずはTaskAlarmReceiverを起動するIntentを作成する
         val resultIntent = Intent(applicationContext, TaskAlarmReceiver::class.java)
+        // TaskAlarmReceiverがブロードキャストを受け取った後、
+        // タスクの「タイトル」などの属性情報を表示した形で通知を発行するためには、
+        // タスクの属性情報が必要になるので、 そのExtraにタスクのID番号を設定する
+        // タスクのID番号を受け取った側では、ID番号をキーにして、タスク情報をRealmから呼び出して使う流れ
+        resultIntent.putExtra(EXTRA_TASK, mTask!!.id)
+        // タスクの期限日時になったら、ブロードキャストされるように、明示的Intentを発行
+        // まずはTaskAlarmReceiverを起動するIntentを作成する
 
-        val filter = IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION).apply {
-            addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED)
-        }
-        Log.d("日付", date.toString())
-        var taskAlarmreceiver: TaskAlarmReceiver = TaskAlarmReceiver()
-        Log.d("日付",date.toInstant().toEpochMilli().toString())
-        registerReceiver(br, filter)
+        // PendingIntentを作成する
+        // 第2引数にタスクのIDを指定する
+        // これは、タスクを削除する際に指定したアラームも合わせて削除する必要があるため
+        // アラームを削除しないとタスクを削除したにもかかわらず通知を表示してしまうことになるから
+        val resultPendingIntent = PendingIntent.getBroadcast(
+            this,
+            mTask!!.id,
+            resultIntent,
+            PendingIntent.FLAG_IMMUTABLE // タスクが編集された時にタスクのデータだけ置き換えたいから指定
+        )
+        // AlarmManagerを使うことで指定した時間に任意の処理をさせることができる
+        // getSystemService メソッドはシステムレベルのサービスを取得するためのメソッド
+        val alarmManager = getSystemService(ALARM_SERVICE) as AlarmManager
 
-        Intent().also { intent ->
-            intent.setAction("com.example.broadcast.MY_NOTIFICATION")
-            intent.setClass(applicationContext, TaskAlarmReceiver::class.java)
-            intent.putExtra("DATE", date.toInstant().toEpochMilli())
-            sendBroadcast(intent)
-        }
+        // 第一引数のRTC_WAKEUPは「UTC時間を指定する。画面スリープ中でもアラームを発行する」という指定
+        // 第二引数でタスクの時間をUTC時間で指定している
+        alarmManager.set(AlarmManager.RTC_WAKEUP, date.toInstant().toEpochMilli(), resultPendingIntent)
+
         Log.d("MyBroadcastsendReceiver", "MyBroadcastSendReceiver")
     }
 

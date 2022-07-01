@@ -22,7 +22,12 @@ import androidx.appcompat.app.AlertDialog
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
+import android.graphics.Color
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
+import io.realm.RealmResults
+
 const val EXTRA_TASK = "jp.techacademy.yuki.naito.taskapp.TASK"
 
 class MainActivity : AppCompatActivity() {
@@ -36,7 +41,7 @@ class MainActivity : AppCompatActivity() {
             reloadListView()
         }
     }
-
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -61,7 +66,13 @@ class MainActivity : AppCompatActivity() {
 
         // ListViewの設定
         mTaskAdapter = TaskAdapter(this)
+        toolbar.setTitleTextColor(Color.WHITE)
+        searchButton.setBackgroundColor(Color.BLUE)
+        searchButton.setOnClickListener {
+            Log.d("Clock", "検索ボタンがクリックされました。")
+            reloadSelectedListView()
 
+        }
         // ListViewをタップしたときの処理
         listView1.setOnItemClickListener { parent, view, position, id ->
             // 入力・編集する画面に遷移させる
@@ -78,25 +89,17 @@ class MainActivity : AppCompatActivity() {
 
             // ダイアログを表示する
             val builder = AlertDialog.Builder(this)
-            var realm = Realm.getDefaultInstance()
+
             builder.setTitle("削除")
             builder.setMessage(task.title + "を削除しますか")
 
             builder.setPositiveButton("OK"){_, _ ->
-                val results = realm.where(Task::class.java).equalTo("id", task.id).findAll()
+                val results = mRealm.where(Task::class.java).equalTo("id", task.id).findAll()
 
-                realm.beginTransaction()
+                mRealm.beginTransaction()
                 results.deleteAllFromRealm()
-                realm.commitTransaction()
-                val resultIntent = Intent(applicationContext, TaskAlarmReceiver::class.java)
-                val resultPendingIntent = PendingIntent.getBroadcast(
-                    this,
-                    task.id,
-                    resultIntent,
-                    PendingIntent.FLAG_UPDATE_CURRENT
-                )
-                val alarmManager = getSystemService(ALARM_SERVICE) as AlarmManager
-                alarmManager.cancel(resultPendingIntent)
+                mRealm.commitTransaction()
+
                 reloadListView()
             }
 
@@ -109,11 +112,26 @@ class MainActivity : AppCompatActivity() {
         }
 
         // アプリ起動時に表示テスト用のタスクを作成する
-        addTaskForTest()
+        //addTaskForTest()
 
         reloadListView()
     }
+    private fun reloadSelectedListView() {
+        var realm = Realm.getDefaultInstance()
+        var taskRealmResults: RealmResults<Task>
+        // Realmデータベースから、「すべてのデータを取得して新しい日時順に並べた結果」を取得
+        if(!searchView.text.toString().equals(""))
+            taskRealmResults = realm.where(Task::class.java).equalTo("category",searchView.text.toString()).findAll().sort("date", Sort.DESCENDING)
+        else
+            taskRealmResults = mRealm.where(Task::class.java).findAll().sort("date", Sort.DESCENDING)
+        // 上記の結果を、TaskListとしてセットする
+        mTaskAdapter.mTaskList = realm.copyFromRealm(taskRealmResults)
+        // TaskのListView用のアダプタに渡す
+        listView1.adapter = mTaskAdapter
 
+        // 表示を更新するために、アダプターにデータが変更されたことを知らせる
+        mTaskAdapter.notifyDataSetChanged()
+    }
     private fun reloadListView() {
         var realm = Realm.getDefaultInstance()
         // Realmデータベースから、「すべてのデータを取得して新しい日時順に並べた結果」を取得

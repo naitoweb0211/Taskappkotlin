@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.BaseAdapter
 import android.widget.TextView
+import kotlinx.android.synthetic.main.list_layout.view.*
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -30,14 +31,17 @@ class TaskAdapter(context: Context): BaseAdapter() {
     }
 
     override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
-        val view: View = convertView ?: mLayoutInflater.inflate(android.R.layout.simple_list_item_2, null)
+        //val view: View = convertView ?: mLayoutInflater.inflate(android.R.layout.simple_list_item_2, null)
+        val view: View = convertView ?: mLayoutInflater.inflate(R.layout.list_layout, null)
 
-        val textView1 = view.findViewById<TextView>(android.R.id.text1)
-        val textView2 = view.findViewById<TextView>(android.R.id.text2)
-        val simpleDateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.JAPANESE)
+        var textView1 = view.findViewById<TextView>(view.title_text.id)
+        var textView2 = view.findViewById<TextView>(view.category_text.id)
+        var textView3 = view.findViewById<TextView>(view.date_text.id)
+        var simpleDateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.JAPANESE)
         // 後でTaskクラスから情報を取得するように変更する
-        textView1.text = mTaskList[position].title
-        textView2.text = simpleDateFormat.format(mTaskList[position].date)
+        view.category_text.text = mTaskList[position].category
+        view.title_text.text = mTaskList[position].title
+        view.date_text.text = simpleDateFormat.format(mTaskList[position].date)
 
         return view
     }
